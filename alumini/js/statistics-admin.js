@@ -338,6 +338,13 @@
 			tmpl = tmpl.replaceAll('__INDEX__', String(index));
 			tmpl = tmpl.replaceAll('__INDEX_LABEL__', String(index + 1));
 			$items.append(tmpl);
+
+			if (typeof wp !== 'undefined' && wp.editor) {
+				wp.editor.initialize('next_desc_' + index, {
+					tinymce: { wpautop: true, plugins: 'paste,lists,link,wordpress', toolbar1: 'bold,italic,bullist,numlist,link,unlink,undo,redo' },
+					quicktags: true
+				});
+			}
 		});
 
 		$(document).on('click', '.alumini-remove-next-desc', function (e) {
@@ -355,79 +362,6 @@
 					$field.attr('name', name);
 				});
 			});
-		});
-
-		// Case study: show/hide Video URL field based on taxonomy selection.
-		function toggleCaseStudyVideoField() {
-			var $wrap = $('.alumini-casestudy-video-fields');
-			if (!$wrap.length) {
-				return;
-			}
-			var termId = parseInt($wrap.attr('data-video-term-id') || '0', 10);
-			var termSlug = String($wrap.attr('data-video-term-slug') || '').toLowerCase();
-			var termLabel = String($wrap.attr('data-video-term-label') || 'Video casestudy').toLowerCase();
-
-			function hasCheckedTerm() {
-				// 1) Most common: checkbox value is term ID.
-				if (termId) {
-					var selector = 'input[type="checkbox"][value="' + String(termId) + '"]';
-					if ($(selector).is(':checked')) {
-						return true;
-					}
-				}
-
-				// 2) Some UIs use slug in value.
-				if (termSlug) {
-					var slugSel = 'input[type="checkbox"][value="' + termSlug + '"]';
-					if ($(slugSel).is(':checked')) {
-						return true;
-					}
-				}
-
-				// 3) Gutenberg panel: match by visible label text.
-				var found = false;
-				$('input[type="checkbox"]:checked').each(function () {
-					var $cb = $(this);
-					var txt = '';
-					var $label = $cb.closest('label');
-					if ($label.length) {
-						txt = $label.text();
-					} else {
-						var $next = $cb.next();
-						if ($next.length) {
-							txt = $next.text();
-						}
-					}
-					txt = String(txt || '').trim().toLowerCase();
-					if (txt && txt.indexOf(termLabel) !== -1) {
-						found = true;
-						return false;
-					}
-					return true;
-				});
-				return found;
-			}
-
-			var checked = hasCheckedTerm();
-			$wrap.toggle(checked);
-			$('.alumini-casestudy-video-note').toggle(!checked);
-		}
-
-		// Gutenberg often injects "Meta Boxes" after DOM ready.
-		// Re-run the toggle for a short time to catch late-rendered UI.
-		toggleCaseStudyVideoField();
-		var attempts = 0;
-		var timer = window.setInterval(function () {
-			attempts += 1;
-			toggleCaseStudyVideoField();
-			if (attempts >= 20) {
-				window.clearInterval(timer);
-			}
-		}, 500);
-
-		// React sidebar interactions don't always fire 'change' reliably.
-		$(document).on('change click', 'input[type="checkbox"], label', function () {
-			toggleCaseStudyVideoField();
 		});
 	});
 })(jQuery);

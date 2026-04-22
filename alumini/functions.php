@@ -216,10 +216,10 @@ function alumini_about_callback($post) {
         <textarea name="about_subtitle" style="width:100%;"><?php echo esc_textarea($subtitle); ?></textarea>
     </p>
 
-    <p>
-        <label><strong>Description</strong></label><br>
-        <textarea name="about_desc" style="width:100%;"><?php echo esc_textarea($desc); ?></textarea>
-    </p>
+    <div style="margin-bottom: 1em;">
+        <label style="display:block; margin-bottom:8px;"><strong>Description</strong></label>
+        <?php wp_editor( $desc, 'about_desc', array('textarea_name' => 'about_desc', 'media_buttons' => false, 'textarea_rows' => 8) ); ?>
+    </div>
 
     <p>
         <label><strong>Image</strong></label><br>
@@ -269,7 +269,7 @@ function alumini_save_about_meta($post_id) {
     update_post_meta($post_id, '_about_current', sanitize_text_field($_POST['about_current'] ?? ''));
     update_post_meta($post_id, '_about_title', sanitize_text_field($_POST['about_title'] ?? ''));
     update_post_meta($post_id, '_about_subtitle', sanitize_textarea_field($_POST['about_subtitle'] ?? ''));
-    update_post_meta($post_id, '_about_desc', sanitize_textarea_field($_POST['about_desc'] ?? ''));
+    update_post_meta($post_id, '_about_desc', wp_kses_post($_POST['about_desc'] ?? ''));
     update_post_meta($post_id, '_about_image', esc_url_raw($_POST['about_image'] ?? ''));
 
     update_post_meta($post_id, '_about_btn_text', sanitize_text_field($_POST['about_btn_text'] ?? ''));
@@ -396,30 +396,32 @@ function alumini_casestudy_meta_boxes() {
 add_action('add_meta_boxes', 'alumini_casestudy_meta_boxes');
 
 function alumini_casestudy_program_meta_box_callback($post) {
+
     wp_nonce_field('alumini_save_casestudy_meta', 'alumini_casestudy_nonce');
 
     $program_name = get_post_meta($post->ID, '_casestudy_program_name', true);
     $video_url    = get_post_meta($post->ID, '_casestudy_video_url', true);
+?>
 
-    $video_term = get_term_by('slug', 'video-casestudy', 'casestudy_category');
-    $video_term_id = $video_term ? (int) $video_term->term_id : 0;
-    $is_video = has_term('video-casestudy', 'casestudy_category', $post);
-    ?>
-    <p>
-        <label for="alumini_casestudy_program_name"><strong><?php echo esc_html__('Program name', 'alumini'); ?></strong></label><br>
-        <input type="text" id="alumini_casestudy_program_name" name="alumini_casestudy_program_name" value="<?php echo esc_attr($program_name); ?>" style="width:100%;">
-    </p>
+<p>
+    <label><strong>Program name</strong></label><br>
+    <input type="text"
+           name="alumini_casestudy_program_name"
+           value="<?php echo esc_attr($program_name); ?>"
+           style="width:100%;">
+</p>
 
-    <div class="alumini-casestudy-video-fields" data-video-term-id="<?php echo esc_attr((string) $video_term_id); ?>" data-video-term-slug="video-casestudy" data-video-term-label="Video casestudy" <?php echo $is_video ? '' : 'style="display:none;"'; ?>>
-        <p>
-            <label for="alumini_casestudy_video_url"><strong><?php echo esc_html__('Video URL', 'alumini'); ?></strong></label><br>
-            <input type="url" id="alumini_casestudy_video_url" name="alumini_casestudy_video_url" value="<?php echo esc_attr($video_url); ?>" style="width:100%;" placeholder="https://">
-        </p>
-    </div>
-    <p class="description alumini-casestudy-video-note" <?php echo $is_video ? 'style="display:none;"' : ''; ?>>
-        <?php echo esc_html__('Assign the “Video casestudy” category to enable the Video URL field.', 'alumini'); ?>
-    </p>
-    <?php
+<p>
+    <label><strong>Video URL (Optional)</strong></label><br>
+    <input type="url"
+           name="alumini_casestudy_video_url"
+           value="<?php echo esc_attr($video_url); ?>"
+           style="width:100%;"
+           placeholder="https://">
+</p>
+
+<?php
+
 }
 
 function alumini_save_casestudy_meta($post_id) {
@@ -439,22 +441,8 @@ function alumini_save_casestudy_meta($post_id) {
     $program_name = sanitize_text_field(wp_unslash($_POST['alumini_casestudy_program_name'] ?? ''));
     update_post_meta($post_id, '_casestudy_program_name', $program_name);
 
-    $video_term = get_term_by('slug', 'video-casestudy', 'casestudy_category');
-    $video_term_id = $video_term ? (int) $video_term->term_id : 0;
-
-    // Prefer the posted terms (block editor) over already-saved terms.
-    $is_video = false;
-    if (isset($_POST['tax_input']['casestudy_category']) && is_array($_POST['tax_input']['casestudy_category']) && $video_term_id) {
-        $posted_terms = array_map('intval', wp_unslash($_POST['tax_input']['casestudy_category']));
-        $is_video = in_array($video_term_id, $posted_terms, true);
-    } else {
-        $is_video = has_term('video-casestudy', 'casestudy_category', $post_id);
-    }
-
-    if ($is_video) {
-        $video_url = esc_url_raw(wp_unslash($_POST['alumini_casestudy_video_url'] ?? ''));
-        update_post_meta($post_id, '_casestudy_video_url', $video_url);
-    }
+    $video_url = esc_url_raw(wp_unslash($_POST['alumini_casestudy_video_url'] ?? ''));
+    update_post_meta($post_id, '_casestudy_video_url', $video_url);
 }
 add_action('save_post', 'alumini_save_casestudy_meta');
 
@@ -888,7 +876,7 @@ function alumini_save_stats_section($post_id) {
 add_action('save_post', 'alumini_save_stats_section');
 
 // ===============================
-// BENEFITS & SERVICES (PAGE)
+// BENEFITS & SERVICES 
 // ===============================
 function alumini_benefits_section_meta_box() {
     add_meta_box(
@@ -935,10 +923,10 @@ function alumini_benefits_section_callback($post) {
         <input type="text" id="alumini_benefits_title" name="alumini_benefits_title" value="<?php echo esc_attr($section_title); ?>" style="width:100%;">
     </p>
 
-    <p>
-        <label for="alumini_benefits_desc"><strong><?php echo esc_html__('Section Description', 'alumini'); ?></strong></label><br>
-        <textarea id="alumini_benefits_desc" name="alumini_benefits_desc" style="width:100%; min-height:90px;"><?php echo esc_textarea($section_desc); ?></textarea>
-    </p>
+    <div style="margin-bottom: 1em;">
+        <label for="alumini_benefits_desc" style="display:block; margin-bottom:8px;"><strong><?php echo esc_html__('Section Description', 'alumini'); ?></strong></label>
+        <?php wp_editor( $section_desc, 'alumini_benefits_desc', array('textarea_name' => 'alumini_benefits_desc', 'media_buttons' => false, 'textarea_rows' => 5) ); ?>
+    </div>
 
     <hr>
 
@@ -1030,7 +1018,7 @@ function alumini_save_benefits_section($post_id) {
     }
 
     update_post_meta($post_id, '_benefits_section_title', sanitize_text_field(wp_unslash($_POST['alumini_benefits_title'] ?? '')));
-    update_post_meta($post_id, '_benefits_section_desc', sanitize_textarea_field(wp_unslash($_POST['alumini_benefits_desc'] ?? '')));
+    update_post_meta($post_id, '_benefits_section_desc', wp_kses_post(wp_unslash($_POST['alumini_benefits_desc'] ?? '')));
     $bg_color = sanitize_text_field(wp_unslash($_POST['alumini_benefits_bg_color'] ?? ''));
     $bg_color = sanitize_hex_color($bg_color);
     update_post_meta($post_id, '_benefits_bg_color', $bg_color ? $bg_color : '');
@@ -1114,7 +1102,7 @@ function alumini_next_section_callback($post) {
         value="<?php echo esc_attr($next_bg_color); ?>"
         data-default-color=""
     />
-</p>
+    </p>
     <p>
         <label for="alumini_next_section_title"><strong><?php echo esc_html__('Title', 'alumini'); ?></strong></label><br>
         <input type="text" id="alumini_next_section_title" name="alumini_next_section_title" value="<?php echo esc_attr($title); ?>" style="width:100%;">
@@ -1168,7 +1156,10 @@ function alumini_next_section_callback($post) {
                     <p class="description" style="margin-top:8px;">
                         <?php echo esc_html__('Basic HTML allowed (e.g. <strong>, <em>, <a>).', 'alumini'); ?>
                     </p>
-                    <textarea name="next_desc_items[<?php echo esc_attr((string) $index); ?>]" style="width:100%; min-height:90px;"><?php echo esc_textarea($html); ?></textarea>
+                    <?php 
+                    $editor_id = 'next_desc_' . $index;
+                    wp_editor( $html, $editor_id, array('textarea_name' => 'next_desc_items[' . $index . ']', 'media_buttons' => false, 'textarea_rows' => 5) ); 
+                    ?>
                 </div>
             <?php endforeach; ?>
         </div>
@@ -1182,7 +1173,7 @@ function alumini_next_section_callback($post) {
                 <p class="description" style="margin-top:8px;">
                     <?php echo esc_html__('Basic HTML allowed (e.g. <strong>, <em>, <a>).', 'alumini'); ?>
                 </p>
-                <textarea name="next_desc_items[__INDEX__]" style="width:100%; min-height:90px;"></textarea>
+                <textarea name="next_desc_items[__INDEX__]" id="next_desc___INDEX__" class="alumini-editor-init" style="width:100%; min-height:90px;"></textarea>
             </div>
         </script>
     </div>
@@ -1277,8 +1268,93 @@ function alumini_news_callback($post) {
         value="<?php echo esc_attr($news_bg_color); ?>"
         data-default-color=""
     />
-</p>
+    </p>
+    <hr>
+    <?php
+    alumini_render_news_picker($post);
+}
 
+function alumini_render_news_picker($post) {
+    $selected = get_post_meta($post->ID, '_selected_news_posts', true);
+    $selected = is_array($selected) ? array_values(array_filter($selected)) : array();
+    $selected = array_values(array_unique(array_filter(array_map('intval', $selected))));
+    $selected = array_slice($selected, 0, 4); // Adjust max if needed
+
+    $available = get_posts(
+        array(
+            'post_type'      => 'post',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish',
+            'orderby'        => array(
+                'date'       => 'DESC',
+            ),
+            'fields'         => 'ids',
+        )
+    );
+    ?>
+    <div class="alumini-post-picker" data-max="4" data-selected-input="alumini_news_selected_input">
+        <div style="display:flex; gap:20px; align-items:flex-start;">
+            <div style="width:45%;">
+                <h4 style="margin-top:0;"><?php echo esc_html__('Available News Posts', 'alumini'); ?></h4>
+                <p style="margin-top:0;">
+                    <input type="search" class="alumini-post-search" placeholder="<?php echo esc_attr__('Search…', 'alumini'); ?>" style="width:100%;">
+                </p>
+                <ul class="alumini-post-available" style="border:1px solid #ccd0d4; padding:8px; margin:0; max-height:280px; overflow:auto;">
+                    <?php foreach ($available as $id) :
+                        $id = (int) $id;
+                        $title = get_the_title($id);
+                        $title = $title ? $title : sprintf(__('(no title) #%d', 'alumini'), $id);
+                        $is_selected = in_array($id, $selected, true);
+                        ?>
+                        <li
+                            class="alumini-post-item <?php echo $is_selected ? 'is-selected' : ''; ?>"
+                            data-id="<?php echo esc_attr((string) $id); ?>"
+                            data-title="<?php echo esc_attr(wp_strip_all_tags($title)); ?>"
+                            style="display:flex; justify-content:space-between; gap:10px; padding:6px 8px; border:1px solid #e5e5e5; background:#fff; margin:0 0 6px; cursor:pointer;"
+                        >
+                            <span><?php echo esc_html($title); ?></span>
+                            <span class="alumini-post-hint" style="color:#646970;">
+                                <?php echo $is_selected ? esc_html__('Selected', 'alumini') : esc_html__('Click to add', 'alumini'); ?>
+                            </span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+
+            <div style="width:55%;">
+                <h4 style="margin-top:0;"><?php echo esc_html__('Selected (Max 4)', 'alumini'); ?></h4>
+                <ul class="alumini-post-selected" style="border:1px solid #ccd0d4; padding:8px; margin:0; min-height:120px;">
+                    <?php foreach ($selected as $id) :
+                        $title = get_the_title($id);
+                        if (!$title) {
+                            continue;
+                        }
+                        ?>
+                        <li
+                            class="alumini-selected-item"
+                            data-id="<?php echo esc_attr((string) $id); ?>"
+                            style="display:flex; justify-content:space-between; gap:10px; padding:6px 8px; border:1px solid #e5e5e5; background:#fff; margin:0 0 6px; cursor:move;"
+                        >
+                            <span class="alumini-selected-title"><?php echo esc_html($title); ?></span>
+                            <button type="button" class="button-link-delete alumini-remove-item" aria-label="<?php echo esc_attr__('Remove', 'alumini'); ?>">
+                                <?php echo esc_html__('Remove', 'alumini'); ?>
+                            </button>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+
+                <input
+                    type="hidden"
+                    id="alumini_news_selected_input"
+                    name="alumini_news_selected"
+                    value="<?php echo esc_attr(implode(',', $selected)); ?>"
+                />
+                <p class="description" style="margin-top:8px;">
+                    <?php echo esc_html__('Tip: drag to reorder. Click an item on the left to add it.', 'alumini'); ?>
+                </p>
+            </div>
+        </div>
+    </div>
     <?php
 }
 function alumini_save_news_meta($post_id) {
@@ -1299,7 +1375,15 @@ function alumini_save_news_meta($post_id) {
         update_post_meta($post_id, '_news_section_title', sanitize_text_field($_POST['news_section_title']));
     }
 
-   
+    if (isset($_POST['alumini_news_selected'])) {
+        $raw = sanitize_text_field(wp_unslash($_POST['alumini_news_selected']));
+        $ids = array_filter(array_map('intval', explode(',', $raw)));
+        $ids = array_values(array_unique($ids));
+        $ids = array_slice($ids, 0, 4);
+        update_post_meta($post_id, '_selected_news_posts', $ids);
+    } else {
+        delete_post_meta($post_id, '_selected_news_posts');
+    }
 }
 add_action('save_post', 'alumini_save_news_meta');
 
@@ -1384,8 +1468,8 @@ function alumini_quicklinks_section_callback($post) {
         'post_type' => 'quicklinks',
         'numberposts' => -1
     ]);
-?>
- <p>
+    ?>
+    <p>
     <label for="alumini_quicklinks_bg_color">
         <strong><?php echo esc_html__('Section Background Color', 'alumini'); ?></strong>
     </label><br>
@@ -1402,7 +1486,7 @@ function alumini_quicklinks_section_callback($post) {
         value="<?php echo esc_attr($quicklinks_bg_color); ?>"
         data-default-color=""
     />
-</p>
+    </p>
 <div style="display:flex; gap:20px;">
 
     <!-- LEFT -->
@@ -1496,21 +1580,29 @@ function alumini_prospectus_callback($post) {
 
     $svg  = get_post_meta($post->ID, '_prospectus_svg', true);
     $link = get_post_meta($post->ID, '_prospectus_link', true);
-?>
+    $btn_target = get_post_meta($post->ID, '_prospectus_btn_target', true);
+    ?>
 
-<p>
-    <label><strong>SVG Code</strong></label><br>
-    <textarea name="prospectus_svg" style="width:100%; height:120px;"><?php echo esc_textarea($svg); ?></textarea>
-</p>
+    <p>
+        <label><strong>SVG Code</strong></label><br>
+        <textarea name="prospectus_svg" style="width:100%; height:120px;"><?php echo esc_textarea($svg); ?></textarea>
+    </p>
 
-<p>
-    <label><strong>Button Link</strong></label><br>
-    <input type="text" name="prospectus_link"
-           value="<?php echo esc_attr($link); ?>"
-           style="width:100%;">
-</p>
+    <p>
+        <label><strong>Button Link</strong></label><br>
+        <input type="text" name="prospectus_link"
+            value="<?php echo esc_attr($link); ?>"
+            style="width:100%;">
+    </p>
 
-<?php
+    <p>
+        <label>
+            <input type="checkbox" name="prospectus_btn_target" <?php checked($btn_target, 'on'); ?>>
+            Open in new tab
+        </label>
+    </p>
+
+    <?php
 }
 function alumini_save_prospectus_meta($post_id) {
 
@@ -1525,6 +1617,8 @@ function alumini_save_prospectus_meta($post_id) {
     if (isset($_POST['prospectus_link'])) {
         update_post_meta($post_id, '_prospectus_link', esc_url_raw($_POST['prospectus_link']));
     }
+
+    update_post_meta($post_id, '_prospectus_btn_target', isset($_POST['prospectus_btn_target']) ? 'on' : '');
 }
 add_action('save_post', 'alumini_save_prospectus_meta');
 // ===============================
@@ -1551,33 +1645,33 @@ function alumini_prospectus_section_callback($post) {
         'post_type' => 'prospectus',
         'numberposts' => -1
     ]);
-?>
+    ?>
 
-<p><strong>Select Prospectus (Only One)</strong></p>
+    <p><strong>Select Prospectus (Only One)</strong></p>
 
-<ul id="available-prospectus" style="border:1px solid #ccc; padding:10px;">
-    <?php foreach($items as $item): ?>
-        <li data-id="<?php echo $item->ID; ?>" style="cursor:pointer;">
-            <?php echo esc_html($item->post_title); ?>
-        </li>
-    <?php endforeach; ?>
-</ul>
+    <ul id="available-prospectus" style="border:1px solid #ccc; padding:10px;">
+        <?php foreach($items as $item): ?>
+            <li data-id="<?php echo $item->ID; ?>" style="cursor:pointer;">
+                <?php echo esc_html($item->post_title); ?>
+            </li>
+        <?php endforeach; ?>
+    </ul>
 
-<p><strong>Selected</strong></p>
+    <p><strong>Selected</strong></p>
 
-<ul id="selected-prospectus" style="border:1px solid #ccc; padding:10px;">
-    <?php if($selected): ?>
-        <li data-id="<?php echo $selected; ?>">
-            <?php echo esc_html(get_the_title($selected)); ?>
-            <span class="remove-prospectus" style="float:right;cursor:pointer;">×</span>
-        </li>
-    <?php endif; ?>
-</ul>
+    <ul id="selected-prospectus" style="border:1px solid #ccc; padding:10px;">
+        <?php if($selected): ?>
+            <li data-id="<?php echo $selected; ?>">
+                <?php echo esc_html(get_the_title($selected)); ?>
+                <span class="remove-prospectus" style="float:right;cursor:pointer;">×</span>
+            </li>
+        <?php endif; ?>
+    </ul>
 
-<input type="hidden" name="selected_prospectus" id="selected_prospectus_input"
-       value="<?php echo esc_attr($selected); ?>">
+    <input type="hidden" name="selected_prospectus" id="selected_prospectus_input"
+        value="<?php echo esc_attr($selected); ?>">
 
-<?php
+    <?php
 }
 function alumini_save_prospectus_section($post_id) {
 
@@ -1590,6 +1684,8 @@ function alumini_save_prospectus_section($post_id) {
     }
 }
 add_action('save_post', 'alumini_save_prospectus_section');
+
+
 function alumini_allow_svg_tags($tags, $context) {
 
     if ($context === 'post') {

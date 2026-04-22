@@ -97,7 +97,7 @@ $about_bg_color = sanitize_hex_color($about_bg_color);
                 <div class="rb-content-flow alumni-col-2">
 
                     <?php if($desc): ?>
-                        <p><?php echo esc_html($desc); ?></p>
+                        <p><?php echo ($desc); ?></p>
                     <?php endif; ?>
 
                     <?php if($btn_text && $btn_link): ?>
@@ -187,7 +187,7 @@ $benefits_items = is_array($benefits_items) ? $benefits_items : array();
 
         <?php if ($benefits_desc) : ?>
             <div class="rb-content-flow">
-                <p class="rb-summary"><?php echo esc_html($benefits_desc); ?></p>
+                <p class="rb-summary"><?php echo ($benefits_desc); ?></p>
             </div>
         <?php endif; ?>
 
@@ -223,7 +223,7 @@ $benefits_items = is_array($benefits_items) ? $benefits_items : array();
                         </div>
 
                         <?php if ($idesc) : ?>
-                            <p><?php echo esc_html($idesc); ?></p>
+                            <p><?php echo ($idesc); ?></p>
                         <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
@@ -372,12 +372,14 @@ function alumini_get_youtube_id_from_url($url) {
                 }
                 $thumb = get_the_post_thumbnail_url($cid, 'large');
                 $program = get_post_meta($cid, '_casestudy_program_name', true);
+                $video_url = get_post_meta($cid, '_casestudy_video_url', true);
+                $target_link = $video_url ? $video_url : get_permalink($cid);
                 ?>
                 <section class="rb-card bg-white">
-                    <a href="<?php echo esc_url(get_permalink($cid)); ?>">
+                    <a href="<?php echo esc_url($target_link); ?>" <?php echo $video_url ? 'target="_blank"' : ''; ?>>
                     </a>
                     <div class="rb-card__inner">
-                        <a href="<?php echo esc_url(get_permalink($cid)); ?>">
+                        <a href="<?php echo esc_url($target_link); ?>" <?php echo $video_url ? 'target="_blank"' : ''; ?>>
                             <picture class="rb-picture rb-card__header">
                                 <?php if ($thumb) : ?>
                                     <img src="<?php echo esc_url($thumb); ?>" title="<?php echo esc_attr(get_the_title($cid)); ?>" alt="" loading="lazy">
@@ -386,7 +388,7 @@ function alumini_get_youtube_id_from_url($url) {
                         </a>
                         <div class="rb-card__content">
                             <h2 class="rb-card__title">
-                                <a href="javascript:void(0);"><?php echo esc_html(get_the_title($cid)); ?></a>
+                                <a href="<?php echo esc_url($target_link); ?>" <?php echo $video_url ? 'target="_blank"' : ''; ?>><?php echo esc_html(get_the_title($cid)); ?></a>
                             </h2>
                             <?php if ($program) : ?>
                                 <h3 class="rb-card__subtitle"><?php echo esc_html($program); ?></h3>
@@ -414,8 +416,9 @@ function alumini_get_youtube_id_from_url($url) {
                 $program  = get_post_meta($cid, '_casestudy_program_name', true);
                 $video_url = get_post_meta($cid, '_casestudy_video_url', true);
                 $yt_id    = alumini_get_youtube_id_from_url($video_url);
-                $yt_thumb = $yt_id ? ('https://img.youtube.com/vi/' . rawurlencode($yt_id) . '/maxresdefault.jpg') : '';
+                $thumb = get_the_post_thumbnail_url($cid, 'large');
                 $play_icon = get_template_directory_uri() . '/img/YouTube_play_button_icon.png';
+                $target_link = $video_url ? $video_url : get_permalink($cid);
                 ?>
                 <section
                     class="rb-card bg-white alumni-video-card"
@@ -423,27 +426,29 @@ function alumini_get_youtube_id_from_url($url) {
                     data-title="<?php echo esc_attr(get_the_title($cid)); ?>"
                 >
                     <div class="rb-card__inner">
-                        <picture class="rb-picture rb-card__picture alumni-video-thumb">
-                            <?php if ($yt_thumb) : ?>
+                        <a href="<?php echo esc_url($target_link); ?>" <?php echo $video_url ? 'target="_blank"' : ''; ?>>
+                            <picture class="rb-picture rb-card__picture alumni-video-thumb">
+                                <?php if ($thumb) : ?>
+                                    <img
+                                        src="<?php echo esc_url($thumb); ?>"
+                                        alt=""
+                                        loading="lazy"
+                                        class="rb-picture__image aspect-3/2"
+                                    />
+                                <?php endif; ?>
+        
                                 <img
-                                    src="<?php echo esc_url($yt_thumb); ?>"
-                                    alt=""
+                                    src="http://alumini.local/wp-content/uploads/2026/04/YouTube_play_button_icon-Copy.png"
+                                    alt="Play Video"
                                     loading="lazy"
-                                    class="rb-picture__image aspect-3/2"
+                                    class="video-play-icon"
                                 />
-                            <?php endif; ?>
-    
-                            <img
-                                src="<?php echo esc_url($play_icon); ?>"
-                                alt="Play Video"
-                                loading="lazy"
-                                class="video-play-icon"
-                            />
-                        </picture>
+                            </picture>
+                        </a>
     
                         <div class="rb-card__content">
                             <h2 class="rb-card__title">
-                                <a href="javascript:void(0);"><?php echo esc_html(get_the_title($cid)); ?></a>
+                                <a href="<?php echo esc_url($target_link); ?>" <?php echo $video_url ? 'target="_blank"' : ''; ?>><?php echo esc_html(get_the_title($cid)); ?></a>
                             </h2>
                             <?php if ($program) : ?>
                                 <h3 class="rb-card__subtitle"><?php echo esc_html($program); ?></h3>
@@ -562,10 +567,22 @@ $news_title = get_post_meta(get_the_ID(), '_news_section_title', true);
 $news_bg_color = get_post_meta(get_the_ID(), '_news_bg_color', true);
 $news_bg_color = sanitize_hex_color($news_bg_color);
 
-$args = array(
-    'post_type' => 'post',
-    'posts_per_page' => 4
-);
+$selected_news_ids = get_post_meta(get_the_ID(), '_selected_news_posts', true);
+$selected_news_ids = is_array($selected_news_ids) ? $selected_news_ids : array();
+
+if (!empty($selected_news_ids)) {
+    $args = array(
+        'post_type' => 'post',
+        'post__in'  => $selected_news_ids,
+        'orderby'   => 'post__in',
+        'posts_per_page' => 4
+    );
+} else {
+    $args = array(
+        'post_type' => 'post',
+        'posts_per_page' => 4
+    );
+}
 
 $news_query = new WP_Query($args);
 ?>
